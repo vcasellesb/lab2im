@@ -274,6 +274,10 @@ class ImageGenerator:
 if __name__ == "__main__":
 
     im_generator = ImageGenerator(labels_dir='tutorials/data_example')
+
+    im, label = im_generator.generate_image()
+    print(np.max(im))
+    exit()
     list_inputs = next(im_generator.model_inputs_generator)
     assert (len(list_inputs) == 3) and (all([isinstance(l, np.ndarray) for l in list_inputs]))
     a = np.random.randn(1, *[128]*3)

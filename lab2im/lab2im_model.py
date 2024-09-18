@@ -102,6 +102,7 @@ def lab2im_model(labels_shape,
 
     # intensity augmentation
     image._keras_shape = tuple(image.get_shape().as_list())
+    # WARNING: Here images get min-max normalized by default
     image = layers.IntensityAugmentation(clip=300, normalise=True, gamma_std=.2)(image)
 
     # blur image
