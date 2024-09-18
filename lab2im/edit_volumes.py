@@ -85,9 +85,9 @@ from scipy.ndimage.morphology import distance_transform_edt, binary_fill_holes
 from scipy.ndimage import binary_dilation, binary_erosion, gaussian_filter
 
 # project imports
-from . import utils
-from .layers import GaussianBlur, ConvertLabels
-from .edit_tensors import blurring_sigma_for_downsampling
+from lab2im import utils
+from lab2im.layers import GaussianBlur, ConvertLabels
+from lab2im.edit_tensors import blurring_sigma_for_downsampling
 
 
 # ---------------------------------------------------- edit volume -----------------------------------------------------
@@ -606,7 +606,12 @@ def get_ras_axes(aff, n_dims=3):
     return img_ras_axes
 
 
-def align_volume_to_ref(volume, aff, aff_ref=None, return_aff=False, n_dims=None, return_copy=True):
+def align_volume_to_ref(volume: np.ndarray, 
+                        aff: np.ndarray, 
+                        aff_ref=None, 
+                        return_aff: bool=False, 
+                        n_dims=None, 
+                        return_copy: bool=True):
     """This function aligns a volume to a reference orientation (axis and direction) specified by an affine matrix.
     :param volume: a numpy array
     :param aff: affine matrix of the floating volume

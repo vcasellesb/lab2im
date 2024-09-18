@@ -67,13 +67,13 @@ import tensorflow as tf
 import keras.layers as KL
 import keras.backend as K
 from datetime import timedelta
-from scipy.ndimage.morphology import distance_transform_edt
-
+from scipy.ndimage import distance_transform_edt
+from typing import List
 
 # ---------------------------------------------- loading/saving functions ----------------------------------------------
 
 
-def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=None):
+def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=None, aff_ref: np.ndarray=None):
     """
     Load volume file.
     :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
@@ -109,7 +109,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
 
     # align image to reference affine matrix
     if aff_ref is not None:
-        from . import edit_volumes  # the import is done here to avoid import loops
+        from lab2im import edit_volumes  # the import is done here to avoid import loops
         n_dims, _ = get_dims(list(volume.shape), max_channels=10)
         volume, aff = edit_volumes.align_volume_to_ref(volume, aff, aff_ref=aff_ref, return_aff=True, n_dims=n_dims)
 
@@ -189,7 +189,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels
 
     # align to given affine matrix
     if aff_ref is not None:
-        from . import edit_volumes  # the import is done here to avoid import loops
+        from lab2im import edit_volumes  # the import is done here to avoid import loops
         ras_axes = edit_volumes.get_ras_axes(aff, n_dims=n_dims)
         ras_axes_ref = edit_volumes.get_ras_axes(aff_ref, n_dims=n_dims)
         im = edit_volumes.align_volume_to_ref(im, aff, aff_ref=aff_ref, n_dims=n_dims)
@@ -332,7 +332,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     if var is None:
         return None
     var = load_array_if_path(var, load_as_numpy=load_as_numpy)
-    if isinstance(var, (int, float, np.int, np.int32, np.int64, np.float, np.float32, np.float64)):
+    if isinstance(var, (int, float, np.int32, np.int64, np.float32, np.float64)):
         var = [var]
     elif isinstance(var, tuple):
         var = list(var)
@@ -400,7 +400,9 @@ def reformat_to_n_channels_array(var, n_dims=3, n_channels=1):
 # ----------------------------------------------- path-related functions -----------------------------------------------
 
 
-def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
+def list_images_in_folder(path_dir: str, 
+                          include_single_image: bool=True, 
+                          check_if_empty: bool=True) -> List[str]:
     """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
@@ -588,7 +590,7 @@ def get_resample_shape(patch_shape, factor, n_channels=None):
     return shape
 
 
-def add_axis(x, axis=0):
+def add_axis(x: np.ndarray, axis: int=0) -> np.ndarray:
     """Add axis to a numpy array.
     :param x: input array
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
@@ -1055,3 +1057,11 @@ def build_exp(x, first, last, fix_point):
     b = first - last
     c = - (1 / fix_point[0]) * np.log((fix_point[1] - last) / (first - last))
     return a + b * np.exp(-c * x)
+
+
+if __name__ == "__main__":
+    random_array = np.random.randn(1, *[128]*3)
+    new_array = add_axis(x=random_array, axis=2)
+    print(new_array.shape)
+    new_array_second_method = random_array
+    print(new_array_second_method.shape)

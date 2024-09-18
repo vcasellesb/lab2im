@@ -19,9 +19,9 @@ import numpy as np
 import numpy.random as npr
 
 # project imports
-from . import utils
-from . import edit_volumes
-from .lab2im_model import lab2im_model
+from lab2im import utils
+from lab2im import edit_volumes
+from lab2im.lab2im_model import lab2im_model
 
 
 class ImageGenerator:
@@ -212,8 +212,8 @@ class ImageGenerator:
             for idx in indices:
 
                 # load label in identity space, and add them to inputs
-                y = utils.load_volume(self.labels_paths[idx], dtype='int', aff_ref=np.eye(4))
-                list_label_maps.append(utils.add_axis(y, axis=[0, -1]))
+                y: np.ndarray = utils.load_volume(self.labels_paths[idx], dtype='int', aff_ref=np.eye(4))
+                list_label_maps.append(utils.add_axis(y, axis=[0, -1])) # add axis adds new dimensions at coordinates (in this case, 0 and -1)
 
                 # add means and standard deviations to inputs
                 means = np.empty((1, n_labels, 0))
@@ -264,3 +264,9 @@ class ImageGenerator:
                 list_inputs = [item[0] for item in list_inputs]
 
             yield list_inputs
+
+
+if __name__ == "__main__":
+    a = np.random.randn(1, *[128]*3)
+    a_2 = utils.add_axis(a, axis = [0, -1])
+    assert a_2.shape == (1, 1, *[128]*3, 1), f'{a_2.shape = }'
