@@ -84,7 +84,7 @@ def lab2im_model(labels_shape,
     means_input = KL.Input(shape=list(generation_labels.shape) + [n_channels], name='means_input')
     stds_input = KL.Input(shape=list(generation_labels.shape) + [n_channels], name='stds_input')
 
-    # deform labels
+    # deform labels spatially
     labels = layers.RandomSpatialDeformation(inter_method='nearest')(labels_input)
 
     # cropping
@@ -124,7 +124,7 @@ def lab2im_model(labels_shape,
     return brain_model
 
 
-def get_shapes(labels_shape, output_shape, atlas_res, target_res, output_div_by_n):
+def get_shapes(labels_shape, output_shape, atlas_res: np.ndarray, target_res: np.ndarray, output_div_by_n):
 
     n_dims = len(atlas_res)
 

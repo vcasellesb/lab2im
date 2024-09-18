@@ -36,6 +36,7 @@ License.
 
 
 # python imports
+from typing import List
 import keras
 import numpy as np
 import tensorflow as tf
@@ -477,7 +478,14 @@ class SampleConditionalGMM(Layer):
         self.built = True
         super(SampleConditionalGMM, self).build(input_shape)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs: List[np.ndarray], **kwargs) ->  np.ndarray:
+        """
+        Parameters:
+            inputs: has to be a length 3 list, each entry an np.ndarray '[label, vector_means, vector_stds]'
+        
+        Returns:
+            np.ndarray
+        """
 
         # reformat labels and scatter indices
         batch = tf.split(tf.shape(inputs[0]), [1, -1])[0]

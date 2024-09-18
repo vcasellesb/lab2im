@@ -193,10 +193,14 @@ class ImageGenerator:
         labels = np.stack(list_labels, axis=0)
         return np.squeeze(image), np.squeeze(labels)
 
-    def _build_model_inputs(self, n_labels):
+    def _build_model_inputs(self, n_labels: int):
+        """
+        This method truly gets executed when you call next on the "generated" generator. Not when you call it explicitly.
+        """
 
         # get label info
-        _, _, n_dims, _, _, _ = utils.get_volume_info(self.labels_paths[0])
+        # commenting this since n_dims is never actually accessed and get_volume_inf loads an image (expensive)
+        # _, _, n_dims, _, _, _ = utils.get_volume_info(self.labels_paths[0])
 
         # Generate!
         while True:
@@ -243,6 +247,7 @@ class ImageGenerator:
                         tmp_prior_stds = self.prior_stds
 
                     # draw means and std devs from priors
+                    # these two calls draw N values from uniform distributions 
                     tmp_classes_means = utils.draw_value_from_distribution(tmp_prior_means, n_labels,
                                                                            self.prior_distributions, 125., 100.,
                                                                            positive_only=True)
@@ -267,6 +272,10 @@ class ImageGenerator:
 
 
 if __name__ == "__main__":
+
+    im_generator = ImageGenerator(labels_dir='tutorials/data_example')
+    list_inputs = next(im_generator.model_inputs_generator)
+    assert (len(list_inputs) == 3) and (all([isinstance(l, np.ndarray) for l in list_inputs]))
     a = np.random.randn(1, *[128]*3)
     a_2 = utils.add_axis(a, axis = [0, -1])
     assert a_2.shape == (1, 1, *[128]*3, 1), f'{a_2.shape = }'

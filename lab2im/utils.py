@@ -68,7 +68,7 @@ import keras.layers as KL
 import keras.backend as K
 from datetime import timedelta
 from scipy.ndimage import distance_transform_edt
-from typing import List
+from typing import List, Union
 
 # ---------------------------------------------- loading/saving functions ----------------------------------------------
 
@@ -89,7 +89,7 @@ def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=
     assert path_volume.endswith(('.nii', '.nii.gz', '.mgz', '.npz')), 'Unknown data file: %s' % path_volume
 
     if path_volume.endswith(('.nii', '.nii.gz', '.mgz')):
-        x = nib.load(path_volume)
+        x: nib.Nifti1Image = nib.load(path_volume)
         if squeeze:
             volume = np.squeeze(x.get_fdata())
         else:
@@ -113,13 +113,10 @@ def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=
         n_dims, _ = get_dims(list(volume.shape), max_channels=10)
         volume, aff = edit_volumes.align_volume_to_ref(volume, aff, aff_ref=aff_ref, return_aff=True, n_dims=n_dims)
 
-    if im_only:
-        return volume
-    else:
-        return volume, aff, header
+    return volume if im_only else (volume, aff, header)
 
 
-def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+def save_volume(volume: np.ndarray, aff: Union[np.ndarray, str], header, path, res=None, dtype=None, n_dims=3):
     """
     Save a volume.
     :param volume: volume to save
@@ -316,7 +313,8 @@ def write_model_summary(model, filepath='./model_summary.txt', line_length=150):
 # ----------------------------------------------- reformatting functions -----------------------------------------------
 
 
-def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
+def reformat_to_list(var: Union[bool, str, int, float, list, tuple, np.ndarray], 
+                     length: int=None, load_as_numpy: bool=False, dtype: str=None) -> list:
     """This function takes a variable and reformat it into a list of desired
     length and type (int, float, bool, str).
     If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
