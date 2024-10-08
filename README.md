@@ -24,7 +24,7 @@ prior distributions when sampling the GMM parameters.
 
 ----------------
 
-### Installation (by Vicent Caselles Ballester)
+### Installation (by Vicent Caselles Ballester)
 
 To install the lab2im software, after cloning and `cd`ing to the repo's directory, run the following code:
 
