@@ -68,7 +68,7 @@ import keras.layers as KL
 import keras.backend as K
 from datetime import timedelta
 from scipy.ndimage import distance_transform_edt
-from typing import List, Union
+from typing import List, Union, Any
 
 # ---------------------------------------------- loading/saving functions ----------------------------------------------
 
@@ -281,7 +281,8 @@ def get_list_labels(label_list=None, labels_dir=None, save_label_list=None, FS_s
         return np.int32(label_list), None
 
 
-def load_array_if_path(var, load_as_numpy=True):
+def load_array_if_path(var: Union[str, Any], 
+                       load_as_numpy: bool=True) -> Union[np.ndarray, Any]:
     """If var is a string and load_as_numpy is True, this function loads the array writen at the path indicated by var.
     Otherwise it simply returns var as it is."""
     if (isinstance(var, str)) & load_as_numpy:
@@ -290,14 +291,14 @@ def load_array_if_path(var, load_as_numpy=True):
     return var
 
 
-def write_pickle(filepath, obj):
+def write_pickle(filepath: str, obj):
     """ write a python object with a pickle at a given path"""
     with open(filepath, 'wb') as file:
         pickler = pickle.Pickler(file)
         pickler.dump(obj)
 
 
-def read_pickle(filepath):
+def read_pickle(filepath: str):
     """ read a python object with a pickle"""
     with open(filepath, 'rb') as file:
         unpickler = pickle.Unpickler(file)
