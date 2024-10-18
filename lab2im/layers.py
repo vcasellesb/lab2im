@@ -49,7 +49,7 @@ from lab2im import edit_tensors as l2i_et
 
 # third-party imports
 from ext.neuron import utils as nrn_utils
-import ext.neuron.layers as nrn_layers
+from ext.neuron import layers as nrn_layers
 
 
 class RandomSpatialDeformation(Layer):

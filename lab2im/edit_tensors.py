@@ -34,7 +34,7 @@ from itertools import combinations
 from lab2im import utils
 
 # third-party imports
-import ext.neuron.layers as nrn_layers
+from ext.neuron import layers as nrn_layers
 from ext.neuron.utils import volshape_to_meshgrid
 
 
