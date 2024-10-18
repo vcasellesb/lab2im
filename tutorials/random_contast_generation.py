@@ -30,7 +30,9 @@ from lab2im.image_generator import ImageGenerator
 
 # label map to generate images from.
 # If you have several label maps, BrainGenerator also accepts the path to a directory that contains them.
-path_label_map = './data_example/brain_label_map.nii.gz'
+mother_folder = 'tutorials/'
+os.chdir(mother_folder)
+path_label_map = './data_example/R4_544.nii.gz'
 
 # general parameters
 n_examples = 5
@@ -57,10 +59,7 @@ generation_classes = './data_example/generation_classes.npy'
 ########################################################################################################
 
 # instantiate BrainGenerator object
-brain_generator = ImageGenerator(labels_dir=path_label_map,
-                                 generation_labels=generation_labels,
-                                 output_labels=output_labels,
-                                 generation_classes=generation_classes)
+brain_generator = ImageGenerator(labels_dir=path_label_map)
 
 # create result dir
 utils.mkdir(result_dir)

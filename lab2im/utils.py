@@ -67,13 +67,13 @@ import tensorflow as tf
 import keras.layers as KL
 import keras.backend as K
 from datetime import timedelta
-from scipy.ndimage.morphology import distance_transform_edt
-
+from scipy.ndimage import distance_transform_edt
+from typing import List, Union, Any
 
 # ---------------------------------------------- loading/saving functions ----------------------------------------------
 
 
-def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=None):
+def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=None, aff_ref: np.ndarray=None):
     """
     Load volume file.
     :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
@@ -89,7 +89,7 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
     assert path_volume.endswith(('.nii', '.nii.gz', '.mgz', '.npz')), 'Unknown data file: %s' % path_volume
 
     if path_volume.endswith(('.nii', '.nii.gz', '.mgz')):
-        x = nib.load(path_volume)
+        x: nib.Nifti1Image = nib.load(path_volume)
         if squeeze:
             volume = np.squeeze(x.get_fdata())
         else:
@@ -109,17 +109,14 @@ def load_volume(path_volume, im_only=True, squeeze=True, dtype=None, aff_ref=Non
 
     # align image to reference affine matrix
     if aff_ref is not None:
-        from . import edit_volumes  # the import is done here to avoid import loops
+        from lab2im import edit_volumes  # the import is done here to avoid import loops
         n_dims, _ = get_dims(list(volume.shape), max_channels=10)
         volume, aff = edit_volumes.align_volume_to_ref(volume, aff, aff_ref=aff_ref, return_aff=True, n_dims=n_dims)
 
-    if im_only:
-        return volume
-    else:
-        return volume, aff, header
+    return volume if im_only else (volume, aff, header)
 
 
-def save_volume(volume, aff, header, path, res=None, dtype=None, n_dims=3):
+def save_volume(volume: np.ndarray, aff: Union[np.ndarray, str], header, path, res=None, dtype=None, n_dims=3):
     """
     Save a volume.
     :param volume: volume to save
@@ -189,7 +186,7 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels
 
     # align to given affine matrix
     if aff_ref is not None:
-        from . import edit_volumes  # the import is done here to avoid import loops
+        from lab2im import edit_volumes  # the import is done here to avoid import loops
         ras_axes = edit_volumes.get_ras_axes(aff, n_dims=n_dims)
         ras_axes_ref = edit_volumes.get_ras_axes(aff_ref, n_dims=n_dims)
         im = edit_volumes.align_volume_to_ref(im, aff, aff_ref=aff_ref, n_dims=n_dims)
@@ -284,7 +281,8 @@ def get_list_labels(label_list=None, labels_dir=None, save_label_list=None, FS_s
         return np.int32(label_list), None
 
 
-def load_array_if_path(var, load_as_numpy=True):
+def load_array_if_path(var: Union[str, Any], 
+                       load_as_numpy: bool=True) -> Union[np.ndarray, Any]:
     """If var is a string and load_as_numpy is True, this function loads the array writen at the path indicated by var.
     Otherwise it simply returns var as it is."""
     if (isinstance(var, str)) & load_as_numpy:
@@ -293,14 +291,14 @@ def load_array_if_path(var, load_as_numpy=True):
     return var
 
 
-def write_pickle(filepath, obj):
+def write_pickle(filepath: str, obj):
     """ write a python object with a pickle at a given path"""
     with open(filepath, 'wb') as file:
         pickler = pickle.Pickler(file)
         pickler.dump(obj)
 
 
-def read_pickle(filepath):
+def read_pickle(filepath: str):
     """ read a python object with a pickle"""
     with open(filepath, 'rb') as file:
         unpickler = pickle.Unpickler(file)
@@ -316,7 +314,8 @@ def write_model_summary(model, filepath='./model_summary.txt', line_length=150):
 # ----------------------------------------------- reformatting functions -----------------------------------------------
 
 
-def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
+def reformat_to_list(var: Union[bool, str, int, float, list, tuple, np.ndarray], 
+                     length: int=None, load_as_numpy: bool=False, dtype: str=None) -> list:
     """This function takes a variable and reformat it into a list of desired
     length and type (int, float, bool, str).
     If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
@@ -332,7 +331,7 @@ def reformat_to_list(var, length=None, load_as_numpy=False, dtype=None):
     if var is None:
         return None
     var = load_array_if_path(var, load_as_numpy=load_as_numpy)
-    if isinstance(var, (int, float, np.int, np.int32, np.int64, np.float, np.float32, np.float64)):
+    if isinstance(var, (int, float, np.int32, np.int64, np.float32, np.float64)):
         var = [var]
     elif isinstance(var, tuple):
         var = list(var)
@@ -400,7 +399,9 @@ def reformat_to_n_channels_array(var, n_dims=3, n_channels=1):
 # ----------------------------------------------- path-related functions -----------------------------------------------
 
 
-def list_images_in_folder(path_dir, include_single_image=True, check_if_empty=True):
+def list_images_in_folder(path_dir: str, 
+                          include_single_image: bool=True, 
+                          check_if_empty: bool=True) -> List[str]:
     """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
     basename = os.path.basename(path_dir)
     if include_single_image & \
@@ -588,7 +589,7 @@ def get_resample_shape(patch_shape, factor, n_channels=None):
     return shape
 
 
-def add_axis(x, axis=0):
+def add_axis(x: np.ndarray, axis: int=0) -> np.ndarray:
     """Add axis to a numpy array.
     :param x: input array
     :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
@@ -1055,3 +1056,11 @@ def build_exp(x, first, last, fix_point):
     b = first - last
     c = - (1 / fix_point[0]) * np.log((fix_point[1] - last) / (first - last))
     return a + b * np.exp(-c * x)
+
+
+if __name__ == "__main__":
+    random_array = np.random.randn(1, *[128]*3)
+    new_array = add_axis(x=random_array, axis=2)
+    print(new_array.shape)
+    new_array_second_method = random_array
+    print(new_array_second_method.shape)

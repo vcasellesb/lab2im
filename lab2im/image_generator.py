@@ -19,9 +19,9 @@ import numpy as np
 import numpy.random as npr
 
 # project imports
-from . import utils
-from . import edit_volumes
-from .lab2im_model import lab2im_model
+from lab2im import utils
+from lab2im import edit_volumes
+from lab2im.lab2im_model import lab2im_model
 
 
 class ImageGenerator:
@@ -193,10 +193,14 @@ class ImageGenerator:
         labels = np.stack(list_labels, axis=0)
         return np.squeeze(image), np.squeeze(labels)
 
-    def _build_model_inputs(self, n_labels):
+    def _build_model_inputs(self, n_labels: int):
+        """
+        This method truly gets executed when you call next on the "generated" generator. Not when you call it explicitly.
+        """
 
         # get label info
-        _, _, n_dims, _, _, _ = utils.get_volume_info(self.labels_paths[0])
+        # commenting this since n_dims is never actually accessed and get_volume_inf loads an image (expensive)
+        # _, _, n_dims, _, _, _ = utils.get_volume_info(self.labels_paths[0])
 
         # Generate!
         while True:
@@ -212,8 +216,8 @@ class ImageGenerator:
             for idx in indices:
 
                 # load label in identity space, and add them to inputs
-                y = utils.load_volume(self.labels_paths[idx], dtype='int', aff_ref=np.eye(4))
-                list_label_maps.append(utils.add_axis(y, axis=[0, -1]))
+                y: np.ndarray = utils.load_volume(self.labels_paths[idx], dtype='int', aff_ref=np.eye(4))
+                list_label_maps.append(utils.add_axis(y, axis=[0, -1])) # add axis adds new dimensions at coordinates (in this case, 0 and -1)
 
                 # add means and standard deviations to inputs
                 means = np.empty((1, n_labels, 0))
@@ -243,6 +247,7 @@ class ImageGenerator:
                         tmp_prior_stds = self.prior_stds
 
                     # draw means and std devs from priors
+                    # these two calls draw N values from uniform distributions 
                     tmp_classes_means = utils.draw_value_from_distribution(tmp_prior_means, n_labels,
                                                                            self.prior_distributions, 125., 100.,
                                                                            positive_only=True)
@@ -264,3 +269,17 @@ class ImageGenerator:
                 list_inputs = [item[0] for item in list_inputs]
 
             yield list_inputs
+
+
+if __name__ == "__main__":
+
+    im_generator = ImageGenerator(labels_dir='tutorials/data_example')
+
+    im, label = im_generator.generate_image()
+    print(np.max(im))
+    exit()
+    list_inputs = next(im_generator.model_inputs_generator)
+    assert (len(list_inputs) == 3) and (all([isinstance(l, np.ndarray) for l in list_inputs]))
+    a = np.random.randn(1, *[128]*3)
+    a_2 = utils.add_axis(a, axis = [0, -1])
+    assert a_2.shape == (1, 1, *[128]*3, 1), f'{a_2.shape = }'

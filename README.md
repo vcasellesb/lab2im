@@ -24,6 +24,22 @@ prior distributions when sampling the GMM parameters.
 
 ----------------
 
+### Installation (by Vicent Caselles Ballester)
+
+To install the lab2im software, after cloning and `cd`ing to the repo's directory, run the following code:
+
+````bash
+conda env create -f environment.yml
+````
+
+This will install the environment named `synthseg`. To rename it to whatever name you should prefer, run:
+
+```bash
+conda rename -n <old_name>  <new_name>
+```
+
+----------------
+
 ### Try it in two lines !
 
 ```
