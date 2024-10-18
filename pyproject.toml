@@ -15,7 +15,6 @@ packages = ["lab2im", "ext.neuron"]
 
 [build-system]
 requires = [
-    "setuptools >= 65",
-    "wheel >= 0.38"
+    "setuptools >= 65"
 ]
 build-backend = "setuptools.build_meta"
