@@ -68,12 +68,14 @@ import keras.layers as KL
 import keras.backend as K
 from datetime import timedelta
 from scipy.ndimage import distance_transform_edt
-from typing import List, Union, Any
+from typing import List, Union, Any, Tuple
 
 # ---------------------------------------------- loading/saving functions ----------------------------------------------
 
+NIFTI_FILES = ('.nii', '.nii.gz', '.mgz')
 
-def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=None, aff_ref: np.ndarray=None):
+def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=None, aff_ref: np.ndarray=None) -> \
+    Union[np.ndarray, Tuple[np.ndarray, np.ndarray, nib.Nifti1Header]]:
     """
     Load volume file.
     :param path_volume: path of the volume to load. Can either be a nii, nii.gz, mgz, or npz format.
@@ -86,22 +88,23 @@ def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=
     The returned affine matrix is also given in this new space. Must be a numpy array of dimension 4x4.
     :return: the volume, with corresponding affine matrix and header if im_only is False.
     """
-    assert path_volume.endswith(('.nii', '.nii.gz', '.mgz', '.npz')), 'Unknown data file: %s' % path_volume
-
-    if path_volume.endswith(('.nii', '.nii.gz', '.mgz')):
+    if path_volume.endswith(NIFTI_FILES):
         x: nib.Nifti1Image = nib.load(path_volume)
-        if squeeze:
-            volume = np.squeeze(x.get_fdata())
-        else:
-            volume = x.get_fdata()
+        volume = x.get_fdata()  
+        
+        if squeeze: volume = np.squeeze(volume)
+        
         aff = x.affine
         header = x.header
-    else:  # npz
+    elif path_volume.endswith('.npz'):  # npz
         volume = np.load(path_volume)['vol_data']
         if squeeze:
             volume = np.squeeze(volume)
         aff = np.eye(4)
         header = nib.Nifti1Header()
+    else:
+        raise ValueError(f'Unsupported input file extension. Expected " .nii.gz | .nii | .mgz | .npz " \nGot {path_volume}')
+    
     if dtype is not None:
         if 'int' in dtype:
             volume = np.round(volume)
@@ -116,7 +119,8 @@ def load_volume(path_volume: str, im_only: bool=True, squeeze: bool=True, dtype=
     return volume if im_only else (volume, aff, header)
 
 
-def save_volume(volume: np.ndarray, aff: Union[np.ndarray, str], header, path, res=None, dtype=None, n_dims=3):
+def save_volume(volume: np.ndarray, aff: Union[np.ndarray, str], 
+                header, path, res=None, dtype=None, n_dims: int=3):
     """
     Save a volume.
     :param volume: volume to save
@@ -157,7 +161,8 @@ def save_volume(volume: np.ndarray, aff: Union[np.ndarray, str], header, path, r
         nib.save(nifty, path)
 
 
-def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels=10):
+def get_volume_info(path_volume: str, return_volume: bool=False, 
+                    aff_ref: Union[None, np.ndarray]=None, max_channels: int=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -203,7 +208,10 @@ def get_volume_info(path_volume, return_volume=False, aff_ref=None, max_channels
         return im_shape, aff, n_dims, n_channels, header, data_res
 
 
-def get_list_labels(label_list=None, labels_dir=None, save_label_list=None, FS_sort=False):
+def get_list_labels(label_list=None, 
+                    labels_dir: Union[None, str]=None, 
+                    save_label_list=None, 
+                    FS_sort: bool=False):
     """This function reads or computes a list of all label values used in a set of label maps.
     It can also sort all labels according to FreeSurfer lut.
     :param label_list: (optional) already computed label_list. Can be a sequence, a 1d numpy array, or the path to
@@ -219,12 +227,10 @@ def get_list_labels(label_list=None, labels_dir=None, save_label_list=None, FS_s
     n_neutral_labels = len(label_list).
     """
 
-    # load label list if previously computed
-    if label_list is not None:
+    if label_list is not None: # load label list if previously computed
         label_list = np.array(reformat_to_list(label_list, load_as_numpy=True, dtype='int'))
-
-    # compute label list from all label files
-    elif labels_dir is not None:
+    
+    elif labels_dir is not None: # compute label list from all label files
         print('Compiling list of unique labels')
         # go through all labels files and compute unique list of labels
         labels_paths = list_images_in_folder(labels_dir)
@@ -404,20 +410,17 @@ def list_images_in_folder(path_dir: str,
                           check_if_empty: bool=True) -> List[str]:
     """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
     basename = os.path.basename(path_dir)
-    if include_single_image & \
-            (('.nii.gz' in basename) | ('.nii' in basename) | ('.mgz' in basename) | ('.npz' in basename)):
+    if include_single_image and basename.endswith((*NIFTI_FILES, '.npz')):
         assert os.path.isfile(path_dir), 'file %s does not exist' % path_dir
         list_images = [path_dir]
     else:
-        if os.path.isdir(path_dir):
-            list_images = sorted(glob.glob(os.path.join(path_dir, '*nii.gz')) +
-                                 glob.glob(os.path.join(path_dir, '*nii')) +
-                                 glob.glob(os.path.join(path_dir, '*.mgz')) +
-                                 glob.glob(os.path.join(path_dir, '*.npz')))
-        else:
-            raise Exception('Folder does not exist: %s' % path_dir)
+        assert os.path.isdir(path_dir), f'Please provide either a path or a valid nifti file. Got {path_dir = }'
+        list_images = sorted(glob.glob(os.path.join(path_dir, '*nii.gz')) +
+                                glob.glob(os.path.join(path_dir, '*nii')) +
+                                glob.glob(os.path.join(path_dir, '*.mgz')) +
+                                glob.glob(os.path.join(path_dir, '*.npz')))
         if check_if_empty:
-            assert len(list_images) > 0, 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
+            assert len(list_images), 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
     return list_images
 
 
@@ -489,7 +492,7 @@ def list_subfolders(path_dir, whole_path=True, expr=None, cond_type='or'):
     return subdirs_list
 
 
-def get_image_extension(path):
+def get_image_extension(path: str):
     name = os.path.basename(path)
     if name[-7:] == '.nii.gz':
         return 'nii.gz'
@@ -556,7 +559,7 @@ def mkcmd(*args):
 # ---------------------------------------------- shape-related functions -----------------------------------------------
 
 
-def get_dims(shape, max_channels=10):
+def get_dims(shape: list, max_channels: int=10) -> Tuple[int, int]:
     """Get the number of dimensions and channels from the shape of an array.
     The number of dimensions is assumed to be the length of the shape, as long as the shape of the last dimension is
     inferior or equal to max_channels (default 3).
@@ -1059,8 +1062,24 @@ def build_exp(x, first, last, fix_point):
 
 
 if __name__ == "__main__":
-    random_array = np.random.randn(1, *[128]*3)
-    new_array = add_axis(x=random_array, axis=2)
-    print(new_array.shape)
-    new_array_second_method = random_array
-    print(new_array_second_method.shape)
+    # testing refactor of list_images_in_folder
+    myfolder = '/Users/vicentcaselles/work/research/project_MARCOS/Multiple-Sclerosis-TIMILS/subj1'
+
+    images_in_folder = list_images_in_folder(path_dir=myfolder,
+                                             include_single_image=True, check_if_empty=True)
+    
+    assert len(images_in_folder) == 6
+
+    # we give it empty folder
+    myfolder = '/Users/vicentcaselles/work/research/project_MARCOS/lab2im/empty_folder'
+    try:
+        should_raise_asserterror = list_images_in_folder(myfolder,
+                                                     True, True)
+    except AssertionError:
+        print('Yay')
+    
+    # now we give it single image
+    myfolder = '/Users/vicentcaselles/work/research/project_MARCOS/Multiple-Sclerosis-TIMILS/subj1/flair_bfc_filled_NeuroMorph_BiasCorrected.nii.gz'
+    images_in_folder = list_images_in_folder(myfolder, True, True)
+
+    assert images_in_folder == [myfolder]

@@ -13,6 +13,7 @@ implied. See the License for the specific language governing permissions and lim
 License.
 """
 
+from typing import List, Union, Iterable, Any
 
 # python imports
 import numpy as np
@@ -31,7 +32,7 @@ def lab2im_model(labels_shape,
                  output_labels,
                  atlas_res,
                  target_res,
-                 output_shape=None,
+                 output_shape: Union[None, Any]=None,
                  output_div_by_n=None,
                  blur_range=1.15):
     """
@@ -125,7 +126,11 @@ def lab2im_model(labels_shape,
     return brain_model
 
 
-def get_shapes(labels_shape, output_shape, atlas_res: np.ndarray, target_res: np.ndarray, output_div_by_n):
+def get_shapes(labels_shape: List[int], 
+               output_shape: Any,
+               atlas_res: np.ndarray, 
+               target_res: np.ndarray, 
+               output_div_by_n):
 
     n_dims = len(atlas_res)
 

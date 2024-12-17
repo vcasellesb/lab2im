@@ -13,6 +13,7 @@ implied. See the License for the specific language governing permissions and lim
 License.
 """
 
+from typing import Union
 
 # python imports
 import numpy as np
@@ -27,15 +28,15 @@ from lab2im.lab2im_model import lab2im_model
 class ImageGenerator:
 
     def __init__(self,
-                 labels_dir,
-                 generation_labels=None,
+                 labels_dir: str,
+                 generation_labels=None, # TODO: rename this to segmentation_classes
                  output_labels=None,
-                 batchsize=1,
-                 n_channels=1,
-                 target_res=None,
+                 batchsize: int=1,
+                 n_channels: int=1,
+                 target_res: Union[None, str]=None,
                  output_shape=None,
                  output_div_by_n=None,
-                 generation_classes=None,
+                 generation_classes=None, # TODO: rename this to class_groups
                  prior_distributions='uniform',
                  prior_means=None,
                  prior_stds=None,
@@ -48,11 +49,12 @@ class ImageGenerator:
 
         :param labels_dir: path of folder with all input label maps, or to a single label map.
 
-        # IMPORTANT !!!
-        # Each time we provide a parameter with separate values for each axis (e.g. with a numpy array or a sequence),
-        # these values refer to the RAS axes.
+        IMPORTANT !!!
+        Each time we provide a parameter with separate values for each axis (e.g. with a numpy array or a sequence),
+        these values refer to the RAS axes.
 
-        # label maps-related parameters
+        -----------------
+        label maps-related parameters
         :param generation_labels: (optional) list of all possible label values in the input label maps.
         Default is None, where the label values are directly gotten from the provided label maps.
         If not None, can be a sequence or a 1d numpy array, or the path to a 1d numpy array.
@@ -75,7 +77,8 @@ class ImageGenerator:
         output_shape if necessary. Can be an integer (same size in all dimensions), a sequence, a 1d numpy array, or
         the path to a 1d numpy array.
 
-        # GMM-sampling parameters
+        ----------------
+        GMM-sampling parameters
         :param generation_classes: (optional) Indices regrouping generation labels into classes of same intensity
         distribution. Regrouped labels will thus share the same Gaussian when sampling a new image. Can be a sequence, a
         1d numpy array, or the path to a 1d numpy array.
@@ -104,7 +107,8 @@ class ImageGenerator:
         :param use_specific_stats_for_channel: (optional) whether the i-th block of two rows in the prior arrays must be
         only used to generate the i-th channel. If True, n_mod should be equal to n_channels. Default is False.
 
-        # blurring parameters
+        ----------------------
+        blurring parameters
         :param blur_range: (optional) Randomise the standard deviation of the blurring kernels, (whether data_res is
         given or not). At each mini_batch, the standard deviation of the blurring kernels are multiplied by a c
         coefficient sampled from a uniform distribution with bounds [1/blur_range, blur_range].
@@ -117,15 +121,19 @@ class ImageGenerator:
         # generation parameters
         self.labels_shape, self.aff, self.n_dims, _, self.header, self.atlas_res = \
             utils.get_volume_info(self.labels_paths[0], aff_ref=np.eye(4))
+        
         self.n_channels = n_channels
+        
         if generation_labels is not None:
             self.generation_labels = utils.load_array_if_path(generation_labels)
         else:
             self.generation_labels, _ = utils.get_list_labels(labels_dir=labels_dir)
+        
         if output_labels is not None:
             self.output_labels = utils.load_array_if_path(output_labels)
         else:
             self.output_labels = self.generation_labels
+        
         self.target_res = utils.load_array_if_path(target_res)
         self.batchsize = batchsize
         # preliminary operations
@@ -133,15 +141,23 @@ class ImageGenerator:
         self.output_div_by_n = output_div_by_n
         # GMM parameters
         self.prior_distributions = prior_distributions
+        
+        # generation classes groups the labels in the segmentation map so that they have the same properties in the generated image
         if generation_classes is not None:
             self.generation_classes = utils.load_array_if_path(generation_classes)
-            assert self.generation_classes.shape == self.generation_labels.shape, \
-                'if provided, generation labels should have the same shape as generation_labels'
+            
+            # this checks that there are same n indices as labels / classes (i fucking hate abuse of notation)
+            assert self.generation_classes.shape == self.generation_labels.shape,  'if provided, generation labels should have ' \
+                                                                                    'the same shape as generation_labels'
+            
+            # this checks that generation classes are consecutive
             unique_classes = np.unique(self.generation_classes)
-            assert np.array_equal(unique_classes, np.arange(np.max(unique_classes)+1)), \
-                'generation_classes should a linear range between 0 and its maximum value.'
+            assert np.array_equal(unique_classes, np.arange(np.max(unique_classes)+1)), 'generation_classes should be consecutive ' \
+                                                                                        'and range between 0 and its maximum value.'
         else:
+            # otherwise, we assume that each label pertains to a singleton group
             self.generation_classes = np.arange(self.generation_labels.shape[0])
+        
         self.prior_means = utils.load_array_if_path(prior_means)
         self.prior_stds = utils.load_array_if_path(prior_stds)
         self.use_specific_stats_for_channel = use_specific_stats_for_channel
