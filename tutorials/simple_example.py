@@ -23,9 +23,9 @@ from lab2im.image_generator import ImageGenerator
 
 
 # path of the input label map
-path_label_map = './data_example/brain_label_map.nii.gz'
+path_label_map = 'tutorials/data_example/brain_label_map.nii.gz'
 # path where to save the generated image
-result_dir = './generated_images'
+result_dir = 'tutorials/generated_images'
 
 # generate an image from the label map.
 # Because the image is spatially deformed, we also output the corresponding deformed label map.

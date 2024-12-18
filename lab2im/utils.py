@@ -409,22 +409,25 @@ def list_images_in_folder(path_dir: str,
                           include_single_image: bool=True, 
                           check_if_empty: bool=True) -> List[str]:
     """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
-    basename = os.path.basename(path_dir)
-    if include_single_image and basename.endswith((*NIFTI_FILES, '.npz')):
-        assert os.path.isfile(path_dir), 'file %s does not exist' % path_dir
-        list_images = [path_dir]
-    else:
-        assert os.path.isdir(path_dir), f'Please provide either a path or a valid nifti file. Got {path_dir = }'
-        list_images = sorted(glob.glob(os.path.join(path_dir, '*nii.gz')) +
-                                glob.glob(os.path.join(path_dir, '*nii')) +
-                                glob.glob(os.path.join(path_dir, '*.mgz')) +
-                                glob.glob(os.path.join(path_dir, '*.npz')))
-        if check_if_empty:
-            assert len(list_images), 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
+    
+    assert os.path.exists(path_dir), f'please provide an existing path. Got {path_dir = }'
+    
+    basenamed = os.path.basename(path_dir)
+    
+    if include_single_image and basenamed.endswith((*NIFTI_FILES, '.npz')):
+        return [path_dir]  
+    
+    assert os.path.isdir(path_dir), f'Please provide either a path or a valid nifti file. Got {path_dir = }'
+    list_images = sorted(glob.glob(os.path.join(path_dir, '*nii.gz')) +
+                            glob.glob(os.path.join(path_dir, '*nii')) +
+                            glob.glob(os.path.join(path_dir, '*.mgz')) +
+                            glob.glob(os.path.join(path_dir, '*.npz')))
+    if check_if_empty:
+        assert len(list_images), 'no .nii, .nii.gz, .mgz or .npz image could be found in %s' % path_dir
     return list_images
 
 
-def list_files(path_dir, whole_path=True, expr=None, cond_type='or'):
+def list_files(path_dir: str, whole_path: bool=True, expr=None, cond_type='or') -> List[str]:
     """This function returns a list of files contained in a folder, with possible regexp.
     :param path_dir: path of a folder
     :param whole_path: (optional) whether to return whole path or just the filenames.
@@ -433,18 +436,17 @@ def list_files(path_dir, whole_path=True, expr=None, cond_type='or'):
     Can be 'or', or 'and'.
     :return: a list of files
     """
-    assert isinstance(whole_path, bool), "whole_path should be bool"
     assert cond_type in ['or', 'and'], "cond_type should be either 'or', or 'and'"
-    if whole_path:
-        files_list = sorted([os.path.join(path_dir, f) for f in os.listdir(path_dir)
-                             if os.path.isfile(os.path.join(path_dir, f))])
-    else:
-        files_list = sorted([f for f in os.listdir(path_dir) if os.path.isfile(os.path.join(path_dir, f))])
-    if expr is not None:  # assumed to be either str or list of str
+
+    fx = os.path.join if whole_path else lambda x, y: y
+    files_list = sorted([fx(path_dir, f) for f in os.listdir(path_dir)])
+   
+    # this could and should be reworked
+    if expr is not None:  # has to be either str or list of str
         if isinstance(expr, str):
             expr = [expr]
-        elif not isinstance(expr, (list, tuple)):
-            raise Exception("if specified, 'expr' should be a string or list of strings.")
+        else: assert isinstance(expr, (list, tuple)), "if specified, 'expr' should be a string or list of strings."
+
         matched_list_files = list()
         for match in expr:
             tmp_matched_files_list = sorted([f for f in files_list if match in os.path.basename(f)])
@@ -1062,20 +1064,28 @@ def build_exp(x, first, last, fix_point):
 
 
 if __name__ == "__main__":
-    # testing refactor of list_images_in_folder
+    # testing refactor of list_images_in_folder and list_files
     myfolder = '/Users/vicentcaselles/work/research/project_MARCOS/Multiple-Sclerosis-TIMILS/subj1'
 
     images_in_folder = list_images_in_folder(path_dir=myfolder,
                                              include_single_image=True, check_if_empty=True)
     
-    assert len(images_in_folder) == 6
+    files_in_folder = list_files(myfolder,
+                                 whole_path=True, expr=(*NIFTI_FILES, '.npz'), cond_type='or')
+    
+    files_in_folder_no_join = list_files(myfolder, whole_path=False, expr=(*NIFTI_FILES, '.npz'))
+    assert all([f == os.path.basename(f2) for f, f2 in zip(files_in_folder_no_join, images_in_folder)])
+    
+    assert len(images_in_folder) == len(files_in_folder) == 6
+    assert images_in_folder == files_in_folder    
 
     # we give it empty folder
-    myfolder = '/Users/vicentcaselles/work/research/project_MARCOS/lab2im/empty_folder'
+    myfolder = '/Users/vicentcaselles/work/research/project_MARCOS/lab2im/lab2im/tests/empty_folder'
     try:
         should_raise_asserterror = list_images_in_folder(myfolder,
-                                                     True, True)
-    except AssertionError:
+                                                        True, True)
+    except AssertionError as e:
+        print(e)
         print('Yay')
     
     # now we give it single image

@@ -22,6 +22,7 @@ License.
 
 """
 
+from typing import List, Union
 
 # python imports
 import numpy as np
@@ -83,7 +84,7 @@ def blurring_sigma_for_downsampling(current_res, downsample_res, mult_coef=None,
     return sigma
 
 
-def gaussian_kernel(sigma, max_sigma=None, blur_range=None, separable=True):
+def gaussian_kernel(sigma: Union[List, np.ndarray, tf.Tensor], max_sigma=None, blur_range=None, separable=True):
     """Build gaussian kernels of the specified standard deviation. The outputs are given as tensorflow tensors.
     :param sigma: standard deviation of the tensors. Can be given as a list/numpy array or as tensors. In each case,
     sigma must have the same length as the number of dimensions of the volume that will be blurred with the output
@@ -181,7 +182,7 @@ def gaussian_kernel(sigma, max_sigma=None, blur_range=None, separable=True):
     return kernels
 
 
-def sobel_kernels(n_dims):
+def sobel_kernels(n_dims: int):
     """Returns sobel kernels to compute spatial derivative on image of n dimensions."""
 
     in_dir = tf.convert_to_tensor([1, 0, -1], dtype='float32')
@@ -254,8 +255,8 @@ def unit_kernel(dist_threshold, n_dims, max_dist_threshold=None):
     return kernel
 
 
-def resample_tensor(tensor,
-                    resample_shape,
+def resample_tensor(tensor: tf.Tensor,
+                    resample_shape: Union[List, np.ndarray],
                     interp_method='linear',
                     subsample_res=None,
                     volume_res=None,
@@ -338,7 +339,7 @@ def resample_tensor(tensor,
         return tensor
 
 
-def expand_dims(tensor, axis=0):
+def expand_dims(tensor: tf.Tensor, axis: Union[int, List[int]]=0):
     """Expand the dimensions of the input tensor along the provided axes (given as an integer or a list)."""
     axis = utils.reformat_to_list(axis)
     for ax in axis:

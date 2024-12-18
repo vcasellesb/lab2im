@@ -13,7 +13,7 @@ implied. See the License for the specific language governing permissions and lim
 License.
 """
 
-from typing import List, Union, Iterable, Any
+from typing import List, Union, Any
 
 # python imports
 import numpy as np
