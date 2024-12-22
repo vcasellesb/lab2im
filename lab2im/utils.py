@@ -210,7 +210,7 @@ def get_volume_info(path_volume: str, return_volume: bool=False,
         return im_shape, aff, n_dims, n_channels, header, data_res
 
 
-def get_list_labels(label_list=Optional[ConvertableToListLab2im], 
+def get_list_labels(label_list: Optional[ConvertableToListLab2im]=None, 
                     labels_dir: Optional[str]=None, 
                     save_label_list=None, 
                     FS_sort: bool=False):
@@ -893,7 +893,7 @@ class LoopInfo:
     processing i/total    remaining time: hh:mm:ss
     """
 
-    def __init__(self, n_iterations: int, spacing=10, text: str=None, print_time=False):
+    def __init__(self, n_iterations: int, spacing=10, text: str=None, print_time: bool=False):
         """
         :param n_iterations: total number of iterations of the for loop.
         :param spacing: frequency at which the update info will be printed on screen.
