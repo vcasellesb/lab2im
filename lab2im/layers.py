@@ -1665,7 +1665,8 @@ class ResetValuesToZero(Layer):
 
 
 class ConvertLabels(Layer):
-    """Convert all labels in a tensor by the corresponding given set of values.
+    """
+    Convert all labels in a tensor by the corresponding given set of values.
     labels_converted = ConvertLabels(source_values, dest_values)(labels).
     labels must be an int32 tensor, and labels_converted will also be int32.
 
@@ -1698,7 +1699,8 @@ class ConvertLabels(Layer):
 
 
 class PadAroundCentre(Layer):
-    """Pad the input tensor to the specified shape with the given value.
+    """
+    Pad the input tensor to the specified shape with the given value.
     The input tensor is expected to have shape [batchsize, shape_dim1, ..., shape_dimn, channel].
     :param pad_margin: margin to use for padding. The tensor will be padded by the provided margin on each side.
     Can either be a number (all axes padded with the same margin), or a  list/numpy array of length n_dims.

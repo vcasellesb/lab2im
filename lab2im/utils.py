@@ -68,9 +68,11 @@ import keras.layers as KL
 import keras.backend as K
 from datetime import timedelta
 from scipy.ndimage import distance_transform_edt
-from typing import List, Union, Any, Tuple
+from typing import List, Union, Any, Tuple, Optional
 
 # ---------------------------------------------- loading/saving functions ----------------------------------------------
+
+ConvertableToListLab2im = Union[bool, str, int, float, list, tuple, np.ndarray] # typing for later
 
 NIFTI_FILES = ('.nii', '.nii.gz', '.mgz')
 
@@ -162,7 +164,7 @@ def save_volume(volume: np.ndarray, aff: Union[np.ndarray, str],
 
 
 def get_volume_info(path_volume: str, return_volume: bool=False, 
-                    aff_ref: Union[None, np.ndarray]=None, max_channels: int=10):
+                    aff_ref: Optional[np.ndarray]=None, max_channels: int=10):
     """
     Gather information about a volume: shape, affine matrix, number of dimensions and channels, header, and resolution.
     :param path_volume: path of the volume to get information form.
@@ -208,11 +210,12 @@ def get_volume_info(path_volume: str, return_volume: bool=False,
         return im_shape, aff, n_dims, n_channels, header, data_res
 
 
-def get_list_labels(label_list=None, 
-                    labels_dir: Union[None, str]=None, 
+def get_list_labels(label_list=Optional[ConvertableToListLab2im], 
+                    labels_dir: Optional[str]=None, 
                     save_label_list=None, 
                     FS_sort: bool=False):
-    """This function reads or computes a list of all label values used in a set of label maps.
+    """
+    This function reads or computes a list of all label values used in a set of label maps.
     It can also sort all labels according to FreeSurfer lut.
     :param label_list: (optional) already computed label_list. Can be a sequence, a 1d numpy array, or the path to
     a numpy 1d array.
@@ -289,40 +292,50 @@ def get_list_labels(label_list=None,
 
 def load_array_if_path(var: Union[str, Any], 
                        load_as_numpy: bool=True) -> Union[np.ndarray, Any]:
-    """If var is a string and load_as_numpy is True, this function loads the array writen at the path indicated by var.
-    Otherwise it simply returns var as it is."""
-    if (isinstance(var, str)) & load_as_numpy:
+    """
+    If var is a string and load_as_numpy is True, this function loads the array writen at the path indicated by var.
+    Otherwise it simply returns var as it is.
+    """
+    if isinstance(var, str) and load_as_numpy:
         assert os.path.isfile(var), 'No such path: %s' % var
         var = np.load(var)
     return var
 
 
 def write_pickle(filepath: str, obj):
-    """ write a python object with a pickle at a given path"""
+    """
+    write a python object with a pickle at a given path
+    """
     with open(filepath, 'wb') as file:
         pickler = pickle.Pickler(file)
         pickler.dump(obj)
 
 
 def read_pickle(filepath: str):
-    """ read a python object with a pickle"""
+    """
+    read a python object with a pickle
+    """
     with open(filepath, 'rb') as file:
         unpickler = pickle.Unpickler(file)
         return unpickler.load()
 
 
 def write_model_summary(model, filepath='./model_summary.txt', line_length=150):
-    """Write the summary of a keras model at a given path, with a given length for each line"""
+    """
+    Write the summary of a keras model at a given path, with a given length for each line
+    """
     with open(filepath, 'w') as fh:
         model.summary(print_fn=lambda x: fh.write(x + '\n'), line_length=line_length)
 
 
 # ----------------------------------------------- reformatting functions -----------------------------------------------
 
-
-def reformat_to_list(var: Union[bool, str, int, float, list, tuple, np.ndarray], 
-                     length: int=None, load_as_numpy: bool=False, dtype: str=None) -> list:
-    """This function takes a variable and reformat it into a list of desired
+def reformat_to_list(var: Optional[ConvertableToListLab2im],
+                     length: Optional[int]=None, 
+                     load_as_numpy: bool=False, 
+                     dtype: Optional[str]=None) -> list:
+    """
+    This function takes a variable and reformat it into a list of desired
     length and type (int, float, bool, str).
     If variable is a string, and load_as_numpy is True, it will be loaded as a numpy array.
     If variable is None, this function returns None.
@@ -335,7 +348,7 @@ def reformat_to_list(var: Union[bool, str, int, float, list, tuple, np.ndarray],
 
     # convert to list
     if var is None:
-        return None
+        return var
     var = load_array_if_path(var, load_as_numpy=load_as_numpy)
     if isinstance(var, (int, float, np.int32, np.int64, np.float32, np.float64)):
         var = [var]
@@ -371,15 +384,17 @@ def reformat_to_list(var: Union[bool, str, int, float, list, tuple, np.ndarray],
         elif dtype == 'str':
             var = [str(v) for v in var]
         else:
-            raise ValueError("dtype should be 'str', 'float', 'int', or 'bool'; had {}".format(dtype))
+            raise ValueError("dtype should be 'str', 'float', 'int', or 'bool'; had '{}'".format(dtype))
     return var
 
 
-def reformat_to_n_channels_array(var, n_dims=3, n_channels=1):
-    """This function takes an int, float, list or tuple and reformat it to an array of shape (n_channels, n_dims).
+def reformat_to_n_channels_array(var, n_dims: int=3, n_channels: int=1):
+    """
+    This function takes an int, float, list or tuple and reformat it to an array of shape (n_channels, n_dims).
     If resolution is a str, it will be assumed to be the path of a numpy array.
     If resolution is a numpy array, it will be checked to have shape (n_channels, n_dims).
-    Finally if resolution is None, this function returns None as well."""
+    Finally if resolution is None, this function returns None as well.
+    """
     if var is None:
         return [None] * n_channels
     if isinstance(var, str):
@@ -408,7 +423,9 @@ def reformat_to_n_channels_array(var, n_dims=3, n_channels=1):
 def list_images_in_folder(path_dir: str, 
                           include_single_image: bool=True, 
                           check_if_empty: bool=True) -> List[str]:
-    """List all files with extension nii, nii.gz, mgz, or npz within a folder."""
+    """
+    List all files with extension nii, nii.gz, mgz, or npz within a folder.
+    """
     
     assert os.path.exists(path_dir), f'please provide an existing path. Got {path_dir = }'
     
@@ -428,7 +445,8 @@ def list_images_in_folder(path_dir: str,
 
 
 def list_files(path_dir: str, whole_path: bool=True, expr=None, cond_type='or') -> List[str]:
-    """This function returns a list of files contained in a folder, with possible regexp.
+    """
+    This function returns a list of files contained in a folder, with possible regexp.
     :param path_dir: path of a folder
     :param whole_path: (optional) whether to return whole path or just the filenames.
     :param expr: (optional) regexp for files to list. Can be a str or a list of str.
@@ -461,7 +479,8 @@ def list_files(path_dir: str, whole_path: bool=True, expr=None, cond_type='or') 
 
 
 def list_subfolders(path_dir, whole_path=True, expr=None, cond_type='or'):
-    """This function returns a list of subfolders contained in a folder, with possible regexp.
+    """
+    This function returns a list of subfolders contained in a folder, with possible regexp.
     :param path_dir: path of a folder
     :param whole_path: (optional) whether to return whole path or just the subfolder names.
     :param expr: (optional) regexp for files to list. Can be a str or a list of str.
@@ -506,13 +525,17 @@ def get_image_extension(path: str):
         return 'npz'
 
 
-def strip_extension(path):
-    """Strip classical image extensions (.nii.gz, .nii, .mgz, .npz) from a filename."""
+def strip_extension(path: str):
+    """
+    Strip classical image extensions (.nii.gz, .nii, .mgz, .npz) from a filename.
+    """
     return path.replace('.nii.gz', '').replace('.nii', '').replace('.mgz', '').replace('.npz', '')
 
 
-def strip_suffix(path):
-    """Strip classical image suffix from a filename."""
+def strip_suffix(path: str):
+    """
+    Strip classical image suffix from a filename.
+    """
     path = path.replace('_aseg', '')
     path = path.replace('aseg', '')
     path = path.replace('.aseg', '')
@@ -540,8 +563,10 @@ def strip_suffix(path):
     return path
 
 
-def mkdir(path_dir):
-    """Recursively creates the current dir as well as its parent folders if they do not already exist."""
+def mkdir(path_dir: str):
+    """
+    Recursively creates the current dir as well as its parent folders if they do not already exist.
+    """
     if path_dir[-1] == '/':
         path_dir = path_dir[:-1]
     if not os.path.isdir(path_dir):
@@ -553,8 +578,10 @@ def mkdir(path_dir):
 
 
 def mkcmd(*args):
-    """Creates terminal command with provided inputs.
-    Example: mkcmd('mv', 'source', 'dest') will give 'mv source dest'."""
+    """
+    Creates terminal command with provided inputs.
+    Example: mkcmd('mv', 'source', 'dest') will give 'mv source dest'.
+    """
     return ' '.join([str(arg) for arg in args])
 
 
@@ -562,7 +589,8 @@ def mkcmd(*args):
 
 
 def get_dims(shape: list, max_channels: int=10) -> Tuple[int, int]:
-    """Get the number of dimensions and channels from the shape of an array.
+    """
+    Get the number of dimensions and channels from the shape of an array.
     The number of dimensions is assumed to be the length of the shape, as long as the shape of the last dimension is
     inferior or equal to max_channels (default 3).
     :param shape: shape of an array. Can be a sequence or a 1d numpy array.
@@ -570,7 +598,8 @@ def get_dims(shape: list, max_channels: int=10) -> Tuple[int, int]:
     :return: the number of dimensions and channels associated with the provided shape.
     example 1: get_dims([150, 150, 150], max_channels=10) = (3, 1)
     example 2: get_dims([150, 150, 150, 3], max_channels=10) = (3, 3)
-    example 3: get_dims([150, 150, 150, 15], max_channels=10) = (4, 1), because 5>3"""
+    example 3: get_dims([150, 150, 150, 15], max_channels=10) = (4, 1), because 5>3
+    """
     if shape[-1] <= max_channels:
         n_dims = len(shape) - 1
         n_channels = shape[-1]
@@ -581,7 +610,8 @@ def get_dims(shape: list, max_channels: int=10) -> Tuple[int, int]:
 
 
 def get_resample_shape(patch_shape, factor, n_channels=None):
-    """Compute the shape of a resampled array given a shape factor.
+    """
+    Compute the shape of a resampled array given a shape factor.
     :param patch_shape: size of the initial array (without number of channels).
     :param factor: resampling factor. Can be a number, sequence, or 1d numpy array.
     :param n_channels: (optional) if not None, add a number of channel at the end of the computed shape.
@@ -595,36 +625,45 @@ def get_resample_shape(patch_shape, factor, n_channels=None):
 
 
 def add_axis(x: np.ndarray, axis: int=0) -> np.ndarray:
-    """Add axis to a numpy array.
+    """
+    Add axis to a numpy array.
     :param x: input array
-    :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time."""
+    :param axis: index of the new axis to add. Can also be a list of indices to add several axes at the same time.
+    """
     axis = reformat_to_list(axis)
     for ax in axis:
         x = np.expand_dims(x, axis=ax)
     return x
 
 
-def get_padding_margin(cropping, loss_cropping):
-    """Compute padding margin"""
-    if (cropping is not None) & (loss_cropping is not None):
-        cropping = reformat_to_list(cropping)
-        loss_cropping = reformat_to_list(loss_cropping)
-        n_dims = max(len(cropping), len(loss_cropping))
-        cropping = reformat_to_list(cropping, length=n_dims)
-        loss_cropping = reformat_to_list(loss_cropping, length=n_dims)
-        padding_margin = [int((cropping[i] - loss_cropping[i]) / 2) for i in range(n_dims)]
-        if len(padding_margin) == 1:
-            padding_margin = padding_margin[0]
-    else:
-        padding_margin = None
+def get_padding_margin(cropping: Optional[ConvertableToListLab2im], 
+                       loss_cropping: Optional[ConvertableToListLab2im]):
+    """
+    Compute padding margin
+    """
+
+    if cropping is None or loss_cropping is None:
+        return
+    
+    cropping = reformat_to_list(cropping)
+    loss_cropping = reformat_to_list(loss_cropping)
+    n_dims = max(len(cropping), len(loss_cropping))
+    cropping = reformat_to_list(cropping, length=n_dims)
+    loss_cropping = reformat_to_list(loss_cropping, length=n_dims)
+    padding_margin = [int((cropping[i] - loss_cropping[i]) / 2) for i in range(n_dims)]
+    
+    if len(padding_margin) == 1:
+        padding_margin = padding_margin[0]
+    
     return padding_margin
 
 
 # -------------------------------------------- build affine matrices/tensors -------------------------------------------
 
 
-def create_affine_transformation_matrix(n_dims, scaling=None, rotation=None, shearing=None, translation=None):
-    """Create a 4x4 affine transformation matrix from specified values
+def create_affine_transformation_matrix(n_dims: int, scaling=None, rotation=None, shearing=None, translation=None) -> np.ndarray:
+    """
+    Create a 4x4 affine transformation matrix from specified values
     :param n_dims: integer, can either be 2 or 3.
     :param scaling: list of 3 scaling values
     :param rotation: list of 3 angles (degrees) for rotations around 1st, 2nd, 3rd axis
@@ -685,8 +724,10 @@ def sample_affine_transform(batchsize,
                             shearing_bounds=False,
                             translation_bounds=False,
                             enable_90_rotations=False):
-    """build batchsize x 4 x 4 tensor representing an affine transformation in homogeneous coordinates.
-    If return_inv is True, also returns the inverse of the created affine matrix."""
+    """
+    build batchsize x 4 x 4 tensor representing an affine transformation in homogeneous coordinates.
+    If return_inv is True, also returns the inverse of the created affine matrix.
+    """
 
     if (rotation_bounds is not False) | (enable_90_rotations is not False):
         if n_dims == 2:
@@ -698,7 +739,7 @@ def sample_affine_transform(batchsize,
                                                         batchsize=batchsize)
             else:
                 rotation = tf.zeros(tf.concat([batchsize, tf.ones(1, dtype='int32')], axis=0))
-        else:  # n_dims = 3
+        else:  # n_dims == 3
             if rotation_bounds is not False:
                 rotation = draw_value_from_distribution(rotation_bounds,
                                                         size=n_dims,
@@ -759,7 +800,9 @@ def sample_affine_transform(batchsize,
 
 
 def create_rotation_transform(rotation, n_dims):
-    """build rotation transform from 3d or 2d rotation coefficients. Angles are given in degrees."""
+    """
+    build rotation transform from 3d or 2d rotation coefficients. Angles are given in degrees.
+    """
     rotation = rotation * np.pi / 180
     if n_dims == 3:
         shape = tf.shape(tf.expand_dims(rotation[..., 0], -1))
@@ -801,7 +844,9 @@ def create_rotation_transform(rotation, n_dims):
 
 
 def create_shearing_transform(shearing, n_dims):
-    """build shearing transform from 2d/3d shearing coefficients"""
+    """
+    build shearing transform from 2d/3d shearing coefficients
+    """
     shape = tf.shape(tf.expand_dims(shearing[..., 0], -1))
     if n_dims == 3:
         shearing_row0 = tf.stack([tf.ones(shape), tf.expand_dims(shearing[..., 0], -1),
@@ -825,7 +870,9 @@ def create_shearing_transform(shearing, n_dims):
 
 
 def infer(x):
-    """ Try to parse input to float. If it fails, tries boolean, and otherwise keep it as string """
+    """ 
+    Try to parse input to float. If it fails, tries boolean, and otherwise keep it as string
+    """
     try:
         x = float(x)
     except ValueError:
@@ -846,7 +893,7 @@ class LoopInfo:
     processing i/total    remaining time: hh:mm:ss
     """
 
-    def __init__(self, n_iterations, spacing=10, text='processing', print_time=False):
+    def __init__(self, n_iterations: int, spacing=10, text: str=None, print_time=False):
         """
         :param n_iterations: total number of iterations of the for loop.
         :param spacing: frequency at which the update info will be printed on screen.
@@ -859,6 +906,8 @@ class LoopInfo:
         self.spacing = spacing
 
         # text parameters
+        if text is None:
+            text = "LoopInfo logging: processing"
         self.text = text
         self.print_time = print_time
         self.print_previous_time = False
@@ -887,7 +936,7 @@ class LoopInfo:
                 average_duration = np.mean(self.iteration_durations[self.iteration_durations > .01 * max_duration])
                 remaining_time = int(average_duration * (self.n_iterations - idx))
                 # print total remaining time only if it is greater than 1s or if it was previously printed
-                if (remaining_time > 1) | self.print_previous_time:
+                if (remaining_time > 1) or self.print_previous_time:
                     eta = str(timedelta(seconds=remaining_time))
                     print(self.text + ' {:<{x}} remaining time: {}'.format(iteration, eta, x=self.align))
                     self.print_previous_time = True
@@ -897,9 +946,11 @@ class LoopInfo:
                 print(self.text + ' {}'.format(iteration))
 
 
-def get_mapping_lut(source, dest=None):
-    """This functions returns the look-up table to map a list of N values (source) to another list (dest).
-    If the second list is not given, we assume it is equal to [0, ..., N-1]."""
+def get_mapping_lut(source: ConvertableToListLab2im, dest=None):
+    """
+    This functions returns the look-up table to map a list of N values (source) to another list (dest).
+    If the second list is not given, we assume it is equal to [0, ..., N-1].
+    """
 
     # initialise
     source = np.array(reformat_to_list(source), dtype='int32')
@@ -921,7 +972,9 @@ def get_mapping_lut(source, dest=None):
 
 
 def build_training_generator(gen, batchsize):
-    """Build generator for training a network."""
+    """
+    Build generator for training a network.
+    """
     while True:
         inputs = next(gen)
         if batchsize > 1:
@@ -931,9 +984,11 @@ def build_training_generator(gen, batchsize):
         yield inputs, target
 
 
-def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
-    """Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
-    values lower than n), or 'higher' (only returns values higher than m)."""
+def find_closest_number_divisible_by_m(n: int, m: int, answer_type='lower'):
+    """
+    Return the closest integer to n that is divisible by m. answer_type can either be 'closer', 'lower' (only returns
+    values lower than n), or 'higher' (only returns values higher than m).
+    """
     if n % m == 0:
         return n
     else:
@@ -951,7 +1006,9 @@ def find_closest_number_divisible_by_m(n, m, answer_type='lower'):
 
 
 def build_binary_structure(connectivity, n_dims, shape=None):
-    """Return a dilation/erosion element with provided connectivity"""
+    """
+    Return a dilation/erosion element with provided connectivity
+    """
     if shape is None:
         shape = [connectivity * 2 + 1] * n_dims
     else:
@@ -965,14 +1022,15 @@ def build_binary_structure(connectivity, n_dims, shape=None):
 
 
 def draw_value_from_distribution(hyperparameter,
-                                 size=1,
-                                 distribution='uniform',
-                                 centre=0.,
-                                 default_range=10.0,
-                                 positive_only=False,
-                                 return_as_tensor=False,
+                                 size: int=1,
+                                 distribution: str='uniform',
+                                 centre: float=0.,
+                                 default_range: float=10.0,
+                                 positive_only: bool=False,
+                                 return_as_tensor: bool=False,
                                  batchsize=None):
-    """Sample values from a uniform, or normal distribution of given hyperparameters.
+    """
+    Sample values from a uniform, or normal distribution of given hyperparameters.
     These hyperparameters are to the number of 2 in both uniform and normal cases.
     :param hyperparameter: values of the hyperparameters. Can either be:
     1) None, in each case the two hyperparameters are given by [center-default_range, center+default_range],
@@ -1002,6 +1060,9 @@ def draw_value_from_distribution(hyperparameter,
     # return False is hyperparameter is False
     if hyperparameter is False:
         return None
+    
+    assert distribution in ['uniform', 'normal'], f'Invalid distribution to draw from. Got {distribution=}'
+    is_uniform = distribution == 'uniform' # hopefully this is more clear
 
     # reformat parameter_range
     hyperparameter = load_array_if_path(hyperparameter, load_as_numpy=True)
@@ -1026,32 +1087,25 @@ def draw_value_from_distribution(hyperparameter,
         shape = KL.Lambda(lambda x: tf.convert_to_tensor(hyperparameter.shape[1], 'int32'))([])
         if batchsize is not None:
             shape = KL.Lambda(lambda x: tf.concat([x[0], tf.expand_dims(x[1], axis=0)], axis=0))([batchsize, shape])
-        if distribution == 'uniform':
-            parameter_value = KL.Lambda(lambda x: tf.random.uniform(shape=x,
-                                                                    minval=hyperparameter[0, :],
-                                                                    maxval=hyperparameter[1, :]))(shape)
-        elif distribution == 'normal':
-            parameter_value = KL.Lambda(lambda x: tf.random.normal(shape=x,
-                                                                   mean=hyperparameter[0, :],
-                                                                   stddev=hyperparameter[1, :]))(shape)
-        else:
-            raise ValueError("Distribution not supported, should be 'uniform' or 'normal'.")
+        
+        f = tf.random.uniform if is_uniform else tf.random.normal
+        # see numpy case for order of params
+        parameter_value = KL.Lambda(lambda x: f(x,
+                                                hyperparameter[0, :],
+                                                hyperparameter[1, :]))(shape)
 
         if positive_only:
             parameter_value = KL.Lambda(lambda x: K.clip(x, 0, None))(parameter_value)
 
     # draw values as numpy array
     else:
-        if distribution == 'uniform':
-            parameter_value = np.random.uniform(low=hyperparameter[0, :], high=hyperparameter[1, :])
-        elif distribution == 'normal':
-            parameter_value = np.random.normal(loc=hyperparameter[0, :], scale=hyperparameter[1, :])
-        else:
-            raise ValueError("Distribution not supported, should be 'uniform' or 'normal'.")
+        f = np.random.uniform if is_uniform else np.random.normal
+        parameter_value = f(hyperparameter[0, :], # low thr if uniform else loc (mean)
+                            hyperparameter[1, :]) # high thr if uniform else scale (std)
 
         if positive_only:
-            parameter_value[parameter_value < 0] = 0
-
+            parameter_value = np.where(parameter_value < 0, 0, parameter_value)
+        
     return parameter_value
 
 
