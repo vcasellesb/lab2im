@@ -234,11 +234,10 @@ def get_list_labels(label_list: Optional[ConvertableToListLab2im]=None,
         label_list = np.array(reformat_to_list(label_list, load_as_numpy=True, dtype='int'))
     
     elif labels_dir is not None: # compute label list from all label files
-        print('Compiling list of unique labels')
         # go through all labels files and compute unique list of labels
         labels_paths = list_images_in_folder(labels_dir)
         label_list = np.empty(0)
-        loop_info = LoopInfo(len(labels_paths), 10, 'processing', print_time=True)
+        loop_info = LoopInfo(len(labels_paths), 10, None, print_time=True)
         for lab_idx, path in enumerate(labels_paths):
             loop_info.update(lab_idx)
             y = load_volume(path, dtype='int32')
