@@ -24,6 +24,19 @@ from lab2im import utils
 from lab2im import edit_volumes
 from lab2im.lab2im_model import lab2im_model
 
+# This dictionary controls the bounds for the uniform distribution that gives
+# the mean and std that will be used to sample from the GMM
+UniformDistributionBounds = {
+    'mean': {
+        'center': 125.,
+        'default_range': 100.
+    },
+
+    'std': {
+        'center': 15.,
+        'default_range': 10.
+    }
+}
 
 class ImageGenerator:
 
@@ -266,10 +279,14 @@ class ImageGenerator:
                     # draw means and std devs from priors
                     # these two calls draw N values from uniform distributions 
                     tmp_classes_means = utils.draw_value_from_distribution(tmp_prior_means, n_labels,
-                                                                           self.prior_distributions, 125., 100.,
+                                                                           self.prior_distributions, 
+                                                                           UniformDistributionBounds['mean']['center'], 
+                                                                           UniformDistributionBounds['mean']['default_range'],
                                                                            positive_only=True)
                     tmp_classes_stds = utils.draw_value_from_distribution(tmp_prior_stds, n_labels,
-                                                                          self.prior_distributions, 15., 10.,
+                                                                          self.prior_distributions, 
+                                                                          UniformDistributionBounds['std']['center'], 
+                                                                          UniformDistributionBounds['std']['default_range'],
                                                                           positive_only=True)
                     tmp_means = utils.add_axis(tmp_classes_means[self.generation_classes], axis=[0, -1])
                     tmp_stds = utils.add_axis(tmp_classes_stds[self.generation_classes], axis=[0, -1])

@@ -478,7 +478,7 @@ class SampleConditionalGMM(Layer):
         self.built = True
         super(SampleConditionalGMM, self).build(input_shape)
 
-    def call(self, inputs: List[np.ndarray], **kwargs) ->  np.ndarray:
+    def call(self, inputs: List[np.ndarray], **kwargs) -> np.ndarray:
         """
         Parameters:
             inputs: has to be a length 3 list, each entry an np.ndarray '[label, vector_means, vector_stds]'
