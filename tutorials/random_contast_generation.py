@@ -32,7 +32,7 @@ from lab2im.image_generator import ImageGenerator
 # If you have several label maps, BrainGenerator also accepts the path to a directory that contains them.
 mother_folder = 'tutorials/'
 os.chdir(mother_folder)
-path_label_map = './data_example/R4_544.nii.gz'
+path_label_map = './data_example/brain_label_map.nii.gz'
 
 # general parameters
 n_examples = 5
